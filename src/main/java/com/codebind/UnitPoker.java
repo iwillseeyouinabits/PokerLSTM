@@ -107,7 +107,7 @@ public class UnitPoker {
 			totHand2[share.length + i] = hand2[i];
 		}
 		double[] plays;
-		int maxPlaysPerHand = 4;
+		int maxPlaysPerHand = 3;
 		if (flip && raisItr <= maxPlaysPerHand)
 			plays = p1.getBetOptions(pot, minbet);
 		else if (flip)
@@ -123,7 +123,7 @@ public class UnitPoker {
 		double oldminbet = minbet;
 		int oldraisitr = raisItr;
 		ArrayList<float[][]> oldhistData = (ArrayList<float[][]>) histData.clone();
-		for (int i = 0; i < plays.length; i++) {
+		for (int i = 0; i < plays.length && i <= 5; i++) { //CHANGE THIS!!!!!!!!!!!!!!!!
 			double play = plays[i];
 			p1 = oldp1.getCopy();
 			p2 = oldp2.getCopy();
@@ -194,7 +194,6 @@ public class UnitPoker {
 					}
 					out.add(new Object[] { p1.getCopy(), p2.getCopy(), totHand, hand1, hand2, tempDeck, pot, minbet,
 							callable, !flip, round, raisItr, dataFile, histData.clone() });
-
 				}
 			} else {
 				out.add(new Object[] { p1.getBankroll(), p1.getCopy(), p2.getCopy(), histData.clone() });
