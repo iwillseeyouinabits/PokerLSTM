@@ -107,7 +107,7 @@ public class UnitPoker {
 			totHand2[share.length + i] = hand2[i];
 		}
 		double[] plays;
-		int maxPlaysPerHand = 3;
+		int maxPlaysPerHand = 4;
 		if (flip && raisItr <= maxPlaysPerHand)
 			plays = p1.getBetOptions(pot, minbet);
 		else if (flip)

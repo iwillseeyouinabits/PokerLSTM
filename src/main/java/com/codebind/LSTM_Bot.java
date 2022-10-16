@@ -27,6 +27,8 @@ import org.deeplearning4j.nn.conf.preprocessor.RnnToCnnPreProcessor;
 import org.deeplearning4j.nn.conf.preprocessor.RnnToFeedForwardPreProcessor;
 import org.deeplearning4j.nn.graph.ComputationGraph;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.nd4j.evaluation.classification.ROC;
+import org.nd4j.evaluation.classification.ROCMultiClass;
 import org.nd4j.linalg.activations.Activation;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.dataset.DataSet;
@@ -62,8 +64,6 @@ public class LSTM_Bot {
 						.nIn(128)
 						.nOut(10)
                         .build())
-//				.inputPreProcessor(0, new FeedForwardToRnnPreProcessor())
-//				.inputPreProcessor(1, new RnnToFeedForwardPreProcessor())
 				.setInputType(InputType.recurrent(input_features, 2))			
 				.build();
 		MultiLayerNetwork model = new MultiLayerNetwork(conf);
@@ -85,26 +85,26 @@ public class LSTM_Bot {
 	}
 
 	public void reset() {
-//		ComputationGraphConfiguration conf = new NeuralNetConfiguration.Builder()
-//				.optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT).graphBuilder()
-//				.addInputs("trainFeatures").setOutputs("pokerBet")
-//				.addLayer("L1", new GravesLSTM.Builder()
-//				        .nIn(input_features)
-//				        .nOut(128)
-//				        .activation(Activation.SOFTSIGN)
-//				        .weightInit(new NormalDistribution(1, 0.1))
-//				        .build(), "trainFeatures")
-//				.addLayer("pokerBet",
-//						new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT)
-//								.activation(Activation.SOFTMAX)
-//								.weightInit(new NormalDistribution(1, 0.1))
-//								.nIn(128)
-//								.nOut(output_size)
-//								.build(), "L1")
-//				.build();
-//		ComputationGraph model = new ComputationGraph(conf);
-//		model.init();
-//		this.model = model;
+		MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
+				.seed(123)
+	            .weightInit(WeightInit.XAVIER)
+	            .updater(new Adam())
+	            .list()
+				.layer(0, new LSTM.Builder()
+                        .activation(Activation.TANH)
+				        .nIn(input_features)
+				        .nOut(128)
+                        .build())
+				.layer(1, new RnnOutputLayer.Builder(LossFunction.MSE)
+                        .activation(Activation.RELU)
+						.nIn(128)
+						.nOut(10)
+                        .build())
+				.setInputType(InputType.recurrent(input_features, 2))			
+				.build();
+		MultiLayerNetwork model = new MultiLayerNetwork(conf);
+		model.init();
+		this.model = model;
 	}
 
 	public LSTM_Bot getCopy() throws CloneNotSupportedException {
@@ -136,14 +136,29 @@ public class LSTM_Bot {
 	public void train(int numFiles) throws IOException, InterruptedException {
 		CSVSequenceRecordReader trainFeatures = new CSVSequenceRecordReader();
 		CSVSequenceRecordReader trainLabels = new CSVSequenceRecordReader();
-		trainFeatures.initialize( new NumberedFileInputSplit("data_inputs_%d.csv", 0, numFiles-1));
-		System.out.println("got in");
-		trainLabels.initialize(new NumberedFileInputSplit("data_outputs_%d.csv", 0, numFiles-1));
-		System.out.println("got out");
-		System.out.println(trainLabels.next());
-		System.out.println(trainFeatures.next());
-		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, 1000, 10, false, SequenceRecordReaderDataSetIterator.AlignmentMode.EQUAL_LENGTH);
-		model.fit(ds, 10);
+		trainFeatures.initialize( new NumberedFileInputSplit("data_inputs_%d.csv", 0, (numFiles*4/5)-1));
+		trainLabels.initialize(new NumberedFileInputSplit("data_outputs_%d.csv", 0, (numFiles*4/5)-1));
+		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, (numFiles*4/5), 10, false, SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END);
+		this.validate((numFiles*4/5), numFiles);
+		model.fit(ds, 100);
+		this.validate((numFiles*4/5), numFiles);
 		System.out.println("trained");
+	}
+	
+	public void validate(int startFiles, int endFiles) throws IOException, InterruptedException {
+		CSVSequenceRecordReader trainFeatures = new CSVSequenceRecordReader();
+		CSVSequenceRecordReader trainLabels = new CSVSequenceRecordReader();
+		trainFeatures.initialize( new NumberedFileInputSplit("data_inputs_%d.csv", startFiles, endFiles-1));
+		trainLabels.initialize(new NumberedFileInputSplit("data_outputs_%d.csv", startFiles, endFiles-1));
+		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, endFiles-startFiles, 10, false, SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END);
+		ROCMultiClass roc = new ROCMultiClass(100);
+		while (ds.hasNext()) {
+		    DataSet batch = ds.next();
+		    INDArray output = model.output(batch.getFeatures());
+		    roc.evalTimeSeries(batch.getLabels(), output);
+		}
+		System.out.println();
+		System.out.println(roc.calculateAverageAUCPR());
+		System.out.println("__________________________");
 	}
 }
