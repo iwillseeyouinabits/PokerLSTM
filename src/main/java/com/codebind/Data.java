@@ -12,7 +12,7 @@ import java.util.Scanner;
 public class Data {
 
 	public float[] getData(Player p1, Player p2) {
-		float[] inputs = new float[] {(float) (p1.getBets().get(p1.getBets().size()-1)/4000), (float) (p2.getBets().get(p2.getBets().size()-1)/4000), (float) (p1.getBets().get(p1.getRanks().size()-1)/9)};
+		float[] inputs = new float[] {(float) (p1.getBets().get(p1.getBets().size()-1)/4000), (float) (p2.getBets().get(p2.getBets().size()-1)/4000), (float) (p1.getBets().get(p1.getRanksTot().size()-1)/9), (float) (p1.getBets().get(p1.getRanksHand().size()-1)/9), (float) (p1.getBets().get(p1.getPots().size()-1)/4000), (float) (p1.getBets().get(p1.getMinBets().size()-1)/4000), (float) (p1.getBets().get(p1.getRound().size()-1)/4)};
 		return inputs;
 	}
 

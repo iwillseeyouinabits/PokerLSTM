@@ -6,31 +6,45 @@ public class Player {
 	double bankroll;
 	String name;
 	LSTM_Bot lstm;
-	ArrayList<Double> bets, ranks;
+	ArrayList<Double> bets, ranksHand, ranksTot, round, minBets, pots;
 
 	public Player (double bankroll, String name, LSTM_Bot w) {
 		this.bankroll = bankroll;
 		this.name = name;
 		this.lstm = w;
 		this.bets = new ArrayList<Double>();
-		this.ranks = new ArrayList<Double>();
-		bets.add(0.0);
-		ranks.add(0.0);
+		this.ranksHand = new ArrayList<Double>();
+		this.ranksTot = new ArrayList<Double>();
+		this.minBets = new ArrayList<Double>();
+		this.pots = new ArrayList<Double>();
+		this.bets.add(0.0);
+		this.ranksHand.add(0.0);
+		this.ranksTot.add(0.0);
+		this.minBets.add(0.0);
+		this.pots.add(0.0);
 	}
 
-	public Player (double bankroll, String name, LSTM_Bot w, ArrayList<Double> bets, ArrayList<Double> ranks) {
+	public Player (double bankroll, String name, LSTM_Bot w, ArrayList<Double> bets, ArrayList<Double> ranksTot, ArrayList<Double> ranksHand, ArrayList<Double> round, ArrayList<Double> minBets, ArrayList<Double> pots) {
 		this.bankroll = bankroll;
 		this.name = name;
 		this.lstm = w;
 		this.bets = bets;
-		this.ranks = ranks;
+		this.ranksTot = ranksTot;
+		this.ranksHand = ranksHand;
+		this.round = round;
+		this.minBets = minBets;
+		this.pots = pots;
 	}
 
 
 	public void reset(int bankroll) {
 		this.bankroll = bankroll;
 		this.bets = new ArrayList<Double>();
-		this.ranks = new ArrayList<Double>();
+		this.ranksHand = new ArrayList<Double>();
+		this.ranksTot = new ArrayList<Double>();
+		this.round = new ArrayList<Double>();
+		this.minBets = new ArrayList<Double>();
+		this.pots = new ArrayList<Double>();
 	}
 
 	public LSTM_Bot getBrain() {
@@ -61,7 +75,7 @@ public class Player {
 	}
 
 	public Player getCopy() throws CloneNotSupportedException {
-		return new Player(bankroll, String.valueOf(name), lstm.getCopy(), (ArrayList<Double>) bets.clone(), (ArrayList<Double>) ranks.clone());
+		return new Player(bankroll, String.valueOf(name), lstm.getCopy(), (ArrayList<Double>) bets.clone(), (ArrayList<Double>) ranksTot.clone(), (ArrayList<Double>) ranksHand.clone(), (ArrayList<Double>) round.clone(), (ArrayList<Double>) minBets.clone(), (ArrayList<Double>) pots.clone());
 	}
 	
 	public String toString() {
@@ -72,8 +86,24 @@ public class Player {
 		return bets;
 	}
 
-	public ArrayList<Double> getRanks() {
-		return ranks;
+	public ArrayList<Double> getRanksHand() {
+		return ranksHand;
+	}
+
+	public ArrayList<Double> getRanksTot() {
+		return ranksTot;
+	}
+
+	public ArrayList<Double> getRound() {
+		return round;
+	}
+
+	public ArrayList<Double> getMinBets() {
+		return minBets;
+	}
+
+	public ArrayList<Double> getPots() {
+		return pots;
 	}
 	
 	public float[] getInputs(Player p2) {
@@ -115,7 +145,7 @@ public class Player {
 		return bets;
 	}
 
-	public double makeBet(double pot, double minbet, int[][] hand, Player player2) {
+	public double makeBet(double pot, double minbet, double round, int[][] hand, Player player2) {
 		float[] inputs = getInputs(player2);
 		float[] outputs = lstm.predict(inputs);
 		int maxInd = -1;
@@ -137,13 +167,17 @@ public class Player {
 			bet = Math.min(pot, getBankroll()-minbet)*(maxInd/5)+minbet;
 		}		
 		bet = filterBet(pot, minbet, Math.floor(bet), 10);
+		this.round.add(round);
 		bets.add(bet);
-		ranks.add(new Rank(hand).getRank());
+		minBets.add(minbet);
+		pots.add(pot);
+		ranksTot.add(new Rank(hand).getRank());
+		ranksTot.add(new Rank(new int[][] {hand[hand.length-1], hand[hand.length-2]}).getRank());
 		bankroll -= bet;
 		return bet;
 	}
 
-	public double makeBet(double pot, double minbet, int[][] hand, Player player2, double betIn) {
+	public double makeBet(double pot, double minbet, double round, int[][] hand, Player player2, double betIn) {
 		float[] inputs = getInputs(player2);
 		float[] outputs = lstm.predict(inputs);
 		int maxInd = -1;
@@ -155,8 +189,12 @@ public class Player {
 			}
 		}
 		double bet = filterBet(pot, minbet, Math.floor(betIn), 10);
+		this.round.add(round);
+		minBets.add(minbet);
+		pots.add(pot);
 		bets.add(bet);
-		ranks.add(new Rank(hand).getRank());
+		ranksTot.add(new Rank(hand).getRank());
+		ranksTot.add(new Rank(new int[][] {hand[hand.length-1], hand[hand.length-2]}).getRank());
 		bankroll -= bet;
 		return bet;
 	}

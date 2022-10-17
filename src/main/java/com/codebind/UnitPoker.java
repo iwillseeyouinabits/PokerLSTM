@@ -1,5 +1,6 @@
 package com.codebind;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -14,7 +15,7 @@ public class UnitPoker {
 	public double[] getNextBet(int round, Player player, Player p2, double pot, double betToCall, int[][] hand,
 			boolean updatePlayer, int raiseItr, double bet) {
 		if (updatePlayer)
-			bet = player.makeBet(pot, betToCall, hand, p2, bet);
+			bet = player.makeBet(pot, betToCall, round, hand, p2, bet);
 		if (bet < betToCall) {
 			if (updatePlayer) {
 				player.addToBankroll(bet);
@@ -37,7 +38,7 @@ public class UnitPoker {
 
 	public double[] getNextBet(int round, Player player, Player p2, double pot, double betToCall, int[][] hand,
 			boolean prnt, int raiseItr) {
-		double bet = player.makeBet(pot, betToCall, hand, p2);
+		double bet = player.makeBet(pot, betToCall, round, hand, p2);
 		if (bet < betToCall) {
 			player.addToBankroll(bet);
 			p2.addToBankroll(pot);
@@ -248,7 +249,7 @@ public class UnitPoker {
 		return bestOut;
 	}
 
-	public ArrayList<float[][]> playGame(LSTM_Bot w1, LSTM_Bot w2, int dataFile) throws CloneNotSupportedException, IOException {
+	public ArrayList<float[][]> playGame(LSTM_Bot w1, LSTM_Bot w2, int dataFile, int gen) throws CloneNotSupportedException, IOException {
 		Player p1 = new Player(2000, "p1", w1);
 		Player p2 = new Player(2000, "p2", w2);
 		ArrayList<float[][]> data = new ArrayList<float[][]>();
@@ -260,8 +261,12 @@ public class UnitPoker {
 				data.add(datum);
 			}
 			if (p1.getBankroll() <= 0 || p2.getBankroll() <= 0) {
-				FileWriter fwIn = new FileWriter("data_inputs_" + dataFile + ".csv");
-				FileWriter fwOut = new FileWriter("data_outputs_" + dataFile + ".csv");
+				File parDir = new File(gen + "\\data_inputs_" + dataFile + ".csv").getParentFile();
+				if (parDir != null) {
+					parDir.mkdirs();
+				}
+				FileWriter fwIn = new FileWriter(gen + "\\data_inputs_" + dataFile + ".csv");
+				FileWriter fwOut = new FileWriter(gen + "\\data_outputs_" + dataFile + ".csv");
 				for(float[][] datum : data) {
 					for(float in : datum[0]) {
 						fwIn.write(in + ",");

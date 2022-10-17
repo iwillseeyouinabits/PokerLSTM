@@ -27,6 +27,7 @@ import org.deeplearning4j.nn.conf.preprocessor.RnnToCnnPreProcessor;
 import org.deeplearning4j.nn.conf.preprocessor.RnnToFeedForwardPreProcessor;
 import org.deeplearning4j.nn.graph.ComputationGraph;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.nd4j.evaluation.classification.Evaluation;
 import org.nd4j.evaluation.classification.ROC;
 import org.nd4j.evaluation.classification.ROCMultiClass;
 import org.nd4j.linalg.activations.Activation;
@@ -84,6 +85,15 @@ public class LSTM_Bot {
 		this.model = model;
 	}
 
+	public LSTM_Bot(File brainFile, int input_features, int output_size) throws IOException {
+		this.model = MultiLayerNetwork.load(brainFile, true);
+		this.input_features = input_features;
+		this.output_size = output_size;
+		for(int i = 0; i < x.length; i++) {
+			x[i] = new float[input_features];
+		}
+	}
+
 	public void reset() {
 		MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
 				.seed(123)
@@ -117,7 +127,7 @@ public class LSTM_Bot {
 
 	public float[] predict(float[] xi) {
 		x[xIter] = xi;
-		float[][][] m = new float[100][3][1];
+		float[][][] m = new float[xIter+1][3][1];
 		for(int i = 0; i < m.length; i++) {
 			m[i][0][0] = x[i][0];
 			m[i][1][0] = x[i][1];
@@ -133,32 +143,31 @@ public class LSTM_Bot {
 		return out;
 	}
 
-	public void train(int numFiles) throws IOException, InterruptedException {
+	public void train(int numFiles, int gen) throws IOException, InterruptedException {
 		CSVSequenceRecordReader trainFeatures = new CSVSequenceRecordReader();
 		CSVSequenceRecordReader trainLabels = new CSVSequenceRecordReader();
-		trainFeatures.initialize( new NumberedFileInputSplit("data_inputs_%d.csv", 0, (numFiles*4/5)-1));
-		trainLabels.initialize(new NumberedFileInputSplit("data_outputs_%d.csv", 0, (numFiles*4/5)-1));
-		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, (numFiles*4/5), 10, false, SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END);
-		this.validate((numFiles*4/5), numFiles);
-		model.fit(ds, 100);
-		this.validate((numFiles*4/5), numFiles);
+		trainFeatures.initialize( new NumberedFileInputSplit(gen + "\\data_inputs_%d.csv", 0, (numFiles*4/5)-1));
+		trainLabels.initialize(new NumberedFileInputSplit(gen + "\\data_outputs_%d.csv", 0, (numFiles*4/5)-1));
+		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, (numFiles*4/5)/10, output_size, false, SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END);
+		this.validate((numFiles*4/5), numFiles, gen);
+		model.fit(ds, 400);
+		this.validate((numFiles*4/5), numFiles, gen);
 		System.out.println("trained");
 	}
 	
-	public void validate(int startFiles, int endFiles) throws IOException, InterruptedException {
+	public void validate(int startFiles, int endFiles, int gen) throws IOException, InterruptedException {
 		CSVSequenceRecordReader trainFeatures = new CSVSequenceRecordReader();
 		CSVSequenceRecordReader trainLabels = new CSVSequenceRecordReader();
-		trainFeatures.initialize( new NumberedFileInputSplit("data_inputs_%d.csv", startFiles, endFiles-1));
-		trainLabels.initialize(new NumberedFileInputSplit("data_outputs_%d.csv", startFiles, endFiles-1));
-		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, endFiles-startFiles, 10, false, SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END);
-		ROCMultiClass roc = new ROCMultiClass(100);
+		trainFeatures.initialize( new NumberedFileInputSplit(gen + "\\data_inputs_%d.csv", startFiles, endFiles-1));
+		trainLabels.initialize(new NumberedFileInputSplit(gen + "\\data_outputs_%d.csv", startFiles, endFiles-1));
+		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, (endFiles-startFiles), output_size, false, SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END);
+		Evaluation eval = new Evaluation(output_size);
 		while (ds.hasNext()) {
 		    DataSet batch = ds.next();
 		    INDArray output = model.output(batch.getFeatures());
-		    roc.evalTimeSeries(batch.getLabels(), output);
+		    eval.eval(batch.getLabels(), output);
 		}
-		System.out.println();
-		System.out.println(roc.calculateAverageAUCPR());
+		eval.stats();
 		System.out.println("__________________________");
 	}
 }
