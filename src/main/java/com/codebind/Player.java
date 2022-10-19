@@ -15,11 +15,13 @@ public class Player {
 		this.bets = new ArrayList<Double>();
 		this.ranksHand = new ArrayList<Double>();
 		this.ranksTot = new ArrayList<Double>();
+		this.round = new ArrayList<Double>();
 		this.minBets = new ArrayList<Double>();
 		this.pots = new ArrayList<Double>();
 		this.bets.add(0.0);
 		this.ranksHand.add(0.0);
 		this.ranksTot.add(0.0);
+		this.round.add(0.0);
 		this.minBets.add(0.0);
 		this.pots.add(0.0);
 	}
@@ -172,7 +174,7 @@ public class Player {
 		minBets.add(minbet);
 		pots.add(pot);
 		ranksTot.add(new Rank(hand).getRank());
-		ranksTot.add(new Rank(new int[][] {hand[hand.length-1], hand[hand.length-2]}).getRank());
+		ranksHand.add(new Rank(new int[][] {hand[hand.length-1], hand[hand.length-2]}).getRank());
 		bankroll -= bet;
 		return bet;
 	}
@@ -194,7 +196,7 @@ public class Player {
 		pots.add(pot);
 		bets.add(bet);
 		ranksTot.add(new Rank(hand).getRank());
-		ranksTot.add(new Rank(new int[][] {hand[hand.length-1], hand[hand.length-2]}).getRank());
+		ranksHand.add(new Rank(new int[][] {hand[hand.length-1], hand[hand.length-2]}).getRank());
 		bankroll -= bet;
 		return bet;
 	}

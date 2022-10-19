@@ -268,10 +268,18 @@ public class UnitPoker {
 				FileWriter fwIn = new FileWriter(gen + "\\data_inputs_" + dataFile + ".csv");
 				FileWriter fwOut = new FileWriter(gen + "\\data_outputs_" + dataFile + ".csv");
 				for(float[][] datum : data) {
+					
+					String line = "";
 					for(float in : datum[0]) {
-						fwIn.write(in + ",");
+						line += (in + ",");
 					}
-					fwIn.write("\n");
+					fwIn.write(line.substring(0, line.length()-1) + "\n");
+					line = "";
+//					for(float in : datum[1]) {
+//						line += ((int)(in) + ",");
+//					}
+//					fwOut.write(line.substring(0, line.length()-1) + "\n");
+
 					float maxOut = 0;
 					int maxInd = 0;
 					for (int k = 0; k < datum[1].length; k++) {
