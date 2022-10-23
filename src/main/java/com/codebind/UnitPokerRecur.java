@@ -11,7 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class UnitPoker {
+public class UnitPokerRecur {
 
 	public double[] getNextBet(int round, Player player, Player p2, double pot, double betToCall, int[][] hand,
 			boolean updatePlayer, int raiseItr, double bet) {
@@ -128,7 +128,7 @@ public class UnitPoker {
 		return newHand;
 	}
 
-	public ArrayList<Object[]> nextUnit(Player p1, Player p2, int[][] share, int[][] hand1, int[][] hand2, Deck deck,
+	public Object[] nextUnit(Player p1, Player p2, int[][] share, int[][] hand1, int[][] hand2, Deck deck,
 			double pot, double minbet, boolean callable, boolean flip, int round, int raisItr, int dataFile,
 			ArrayList<float[][]> histData) throws Exception {
 		int[][] totHand1 = new int[hand1.length + share.length][];
@@ -186,7 +186,7 @@ public class UnitPoker {
 
 			if (plays.length > 1) {
 				float[] input = new Data().getData(p1, p2);
-				float[] output = new float[7];
+				float[] output = new float[10];
 				output[i] = 1;
 				histData.add(new float[][] { input, output });
 			}
@@ -217,8 +217,8 @@ public class UnitPoker {
 
 			if (cont) {
 				if (!dealCards)
-					out.add(new Object[] { p1.getCopy(), p2.getCopy(), this.copyHand(share), this.copyHand(hand1), this.copyHand(hand2), deck.getCopy(), pot, minbet, callable,
-							!flip, round, raisItr, dataFile, histData });
+					out.add(this.nextUnit(p1.getCopy(), p2.getCopy(), this.copyHand(share), this.copyHand(hand1), this.copyHand(hand2), deck.getCopy(), pot, minbet, callable,
+							!flip, round, raisItr, dataFile, (ArrayList<float[][]>) histData.clone()));
 				else {
 					Deck tempDeck = ((Deck) deck).getCopy();
 					int[][] newCards = dealCards(tempDeck, round - 1);
@@ -229,14 +229,22 @@ public class UnitPoker {
 					for (int k = 0; k < newCards.length; k++) {
 						newShare[k + share.length] = newCards[k];
 					}
-					out.add(new Object[] { p1.getCopy(), p2.getCopy(), this.copyHand(newShare), this.copyHand(hand1), this.copyHand(hand2), tempDeck, pot, minbet,
-							callable, !flip, round, raisItr, dataFile, histData.clone() });
+					out.add(this.nextUnit(p1.getCopy(), p2.getCopy(), this.copyHand(newShare), this.copyHand(hand1), this.copyHand(hand2), tempDeck, pot, minbet,
+							callable, !flip, round, raisItr, dataFile, (ArrayList<float[][]>) histData.clone()));
 				}
 			} else {
 				out.add(new Object[] { p1.getBankroll(), p1.getCopy(), p2.getCopy(), histData.clone() });
 			}
 		}
-		return out;
+		double maxBank = 0;
+		int maxInd = 0;
+		for(int i = 0; i < out.size(); i++) {
+			if((Double) out.get(i)[0] > maxBank) {
+				maxBank = (Double) out.get(maxInd)[0];
+				maxInd = i;
+			}
+		}
+		return out.get(maxInd);
 	}
 
 	public Object[] playHand(Player p1, Player p2, boolean flip, int dataFile) throws Exception {
@@ -255,57 +263,39 @@ public class UnitPoker {
 		int[][] share = new int[0][];
 		double minbet = 10;
 		boolean callable = false;
-		ArrayList<Object[]> argArray = new ArrayList<Object[]>();
-		argArray.add(new Object[] { p1, p2, share, hand1, hand2, deck, pot, minbet, callable, flip, round, 0, dataFile,
-				new ArrayList<double[][]>() });
-		ArrayList<Object[]> output = new ArrayList<Object[]>();
-		while (argArray.size() > 0) {
-			Object[] args = argArray.remove(0);
-			if (args.length == 14) {
-				ArrayList<Object[]> nextUnit = nextUnit((Player) args[0], (Player) args[1], (int[][]) args[2],
-						(int[][]) args[3], (int[][]) args[4], (Deck) args[5], (Double) args[6], (Double) args[7],
-						(Boolean) args[8], (Boolean) args[9], (Integer) args[10], (Integer) args[11],
-						(Integer) args[12], (ArrayList<float[][]>) args[13]);
-				for (Object[] n : nextUnit) {
-					argArray.add(n);
-				}
-			} else {
-				output.add(args);
-			}
-		}
-		double tieBreak = 1;
-		double maxBank = 0;
-		Object[] bestOut = new Object[3];
-		for (int i = 0; i < output.size(); i++) {
-			Object[] out = output.get(i);
-			if ((Double) out[0] > maxBank) {
-				maxBank = (Double) out[0];
-				bestOut = out;
-			} else if ((Double) out[0] == maxBank) {
-				ArrayList<float[][]> data = (ArrayList<float[][]>) out[3];
-				double[] inCat = new double[data.get(0)[1].length];
-				for(float[][] datum : data) {
-					for(int itr = 0; itr < datum[1].length; itr++) {
-						if (datum[1][itr] == 1) {
-							inCat[itr]++;
-						}
-					}
-				}
-				double maxCat = 0;
-				for(double cat : inCat) {
-					if (cat/(double)data.size() > maxCat) {
-						maxCat = cat/(double)data.size();
-					}
-				}
-				if(maxCat < tieBreak) {
-					tieBreak = maxCat;
-					maxBank = (Double) out[0];
-					bestOut = out;
-				}
-			}
-		}
+//		ArrayList<Object[]> argArray = new ArrayList<Object[]>();
+//		argArray.add(new Object[] { p1, p2, share, hand1, hand2, deck, pot, minbet, callable, flip, round, 0, dataFile,
+//				new ArrayList<double[][]>() });
+//		ArrayList<Object[]> output = new ArrayList<Object[]>();
+//		while (argArray.size() > 0) {
+//			Object[] args = argArray.remove(0);
+//			if (args.length == 14) {
+//				ArrayList<Object[]> nextUnit = nextUnit((Player) args[0], (Player) args[1], (int[][]) args[2],
+//						(int[][]) args[3], (int[][]) args[4], (Deck) args[5], (Double) args[6], (Double) args[7],
+//						(Boolean) args[8], (Boolean) args[9], (Integer) args[10], (Integer) args[11],
+//						(Integer) args[12], (ArrayList<float[][]>) args[13]);
+//				for (Object[] n : nextUnit) {
+//					argArray.add(n);
+//				}
+//			} else {
+//				output.add(args);
+//			}
+//		}
+//		double maxBank = 0;
+//		Object[] bestOut = new Object[3];
+//		for (int i = 0; i < output.size(); i++) {
+//			Object[] out = output.get(i);
+//			if ((Double) out[0] > maxBank) {
+//				maxBank = (Double) out[0];
+//				bestOut = out;
+//			}
+//		}
+		
 //		System.out.println(maxBank);
-		return bestOut;
+		Object[] out = nextUnit(p1, p2, share, hand1, hand2, deck, pot, minbet, callable, flip, round, 0, dataFile,
+				new ArrayList<float[][]>());
+//		System.out.println(out[0]);
+		return out;
 	}
 
 	public ArrayList<float[][]> playGame(LSTM_Bot w1, LSTM_Bot w2, int botItr, int dataFile, int gen)

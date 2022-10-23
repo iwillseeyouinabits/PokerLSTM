@@ -17,7 +17,7 @@ public class Deck {
 	public void newDeck() {
 		deck = new ArrayList<int[]>();
 		for (int suit = 0; suit < 4; suit++)
-			for (int rank = 0; rank < 4; rank++)
+			for (int rank = 0; rank < 13; rank++)
 				deck.add(new int[] {suit, rank});
 		Collections.shuffle(deck);
 	}

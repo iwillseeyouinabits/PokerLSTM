@@ -46,7 +46,7 @@ import org.deeplearning4j.nn.weights.WeightInit;
 public class LSTM_Bot {
 	MultiLayerNetwork model;
 	int input_features, output_size;
-	float[][] x = new float[500][];
+	float[][] x = new float[100000][];
 	int xIter = 0;
 
 	public LSTM_Bot(int input_features, int output_size) {
@@ -133,31 +133,36 @@ public class LSTM_Bot {
 		}
 		INDArray input = Nd4j.create(m);
 		INDArray output = model.output(input);
+//		System.out.println(input);
+//		System.out.println(output);
+//		System.out.println();
 		float[] out = new float[this.output_size];
 		for (int i = 0; i < out.length; i++) {
 			out[i] = output.get(NDArrayIndex.point(xIter)).getFloat(i);
+//			System.out.print(out[i] + " ");
 		}
+//		System.out.println();
 		xIter++;
 		return out;
 	}
 
-	public void train(int numFiles, int gen) throws IOException, InterruptedException {
+	public void train(int numFiles, int gen, int botInd) throws IOException, InterruptedException {
 		CSVSequenceRecordReader trainFeatures = new CSVSequenceRecordReader();
 		CSVSequenceRecordReader trainLabels = new CSVSequenceRecordReader();
-		trainFeatures.initialize( new NumberedFileInputSplit(gen + "\\data_inputs_%d.csv", 0, (numFiles*4/5)-1));
-		trainLabels.initialize(new NumberedFileInputSplit(gen + "\\data_outputs_%d.csv", 0, (numFiles*4/5)-1));
-		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, (numFiles*4/5)/10, output_size, false, SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END);
-		this.validate((numFiles*4/5), numFiles, gen);
-		model.fit(ds, 4*output_size);
-		this.validate((numFiles*4/5), numFiles, gen);
+		trainFeatures.initialize( new NumberedFileInputSplit(botInd + "/" + gen + "/data_inputs_%d.csv", 0, (numFiles*4/5)-1));
+		trainLabels.initialize(new NumberedFileInputSplit(botInd+ "/" + gen + "/data_outputs_%d.csv", 0, (numFiles*4/5)-1));
+		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, 32, output_size, false, SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END);
+		this.validate((numFiles*4/5), numFiles, gen, botInd);
+		model.fit(ds, 10);
+		this.validate((numFiles*4/5), numFiles, gen, botInd);
 		System.out.println("trained");
 	}
 	
-	public void validate(int startFiles, int endFiles, int gen) throws IOException, InterruptedException {
+	public void validate(int startFiles, int endFiles, int gen, int botInd) throws IOException, InterruptedException {
 		CSVSequenceRecordReader trainFeatures = new CSVSequenceRecordReader();
 		CSVSequenceRecordReader trainLabels = new CSVSequenceRecordReader();
-		trainFeatures.initialize( new NumberedFileInputSplit(gen + "\\data_inputs_%d.csv", startFiles, endFiles-1));
-		trainLabels.initialize(new NumberedFileInputSplit(gen + "\\data_outputs_%d.csv", startFiles, endFiles-1));
+		trainFeatures.initialize( new NumberedFileInputSplit(botInd + "/" + gen + "/data_inputs_%d.csv", startFiles, endFiles-1));
+		trainLabels.initialize(new NumberedFileInputSplit(botInd + "/" + gen + "/data_outputs_%d.csv", startFiles, endFiles-1));
 //		while(trainFeatures.hasNext()) {
 //			System.out.println(trainFeatures.next());
 //			System.out.println(trainLabels.next());
