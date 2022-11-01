@@ -42,27 +42,30 @@ import org.nd4j.linalg.learning.config.Adam;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction;
 import org.deeplearning4j.nn.weights.WeightInit;
+import org.deeplearning4j.parallelism.ParallelWrapper;
 
 public class LSTM_Bot {
 	MultiLayerNetwork model;
 	int input_features, output_size;
-	float[][] x = new float[100000][];
+	ArrayList<float[]> x = new ArrayList<float[]>();
 	int xIter = 0;
 
 	public LSTM_Bot(int input_features, int output_size) {
+		int LSTM_LAYER_SIZE = 25;
+		int seed = (int)(Math.random()*1000000);
 		MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
-				.seed(123)
+				.seed(seed)
 	            .weightInit(WeightInit.XAVIER)
 	            .updater(new Adam())
 	            .list()
 				.layer(0, new LSTM.Builder()
-                        .activation(Activation.TANH)
-				        .nIn(input_features)
-				        .nOut(128)
-                        .build())
-				.layer(1, new RnnOutputLayer.Builder(LossFunction.MSE)
                         .activation(Activation.RELU)
-						.nIn(128)
+				        .nIn(input_features)
+				        .nOut(LSTM_LAYER_SIZE)
+                        .build())
+				.layer(1, new RnnOutputLayer.Builder(LossFunction.MCXENT)
+                        .activation(Activation.SOFTMAX)
+						.nIn(LSTM_LAYER_SIZE)
 						.nOut(output_size)
                         .build())		
 				.build();
@@ -71,15 +74,16 @@ public class LSTM_Bot {
 		this.model = model;
 		this.input_features = input_features;
 		this.output_size = output_size;
-		for(int i = 0; i < x.length; i++) {
-			x[i] = new float[input_features];
-		}
+		this.x = new ArrayList<float[]>();
 	}
 
 	public LSTM_Bot(MultiLayerNetwork model, int input_features, int output_size,  float[][] x, int xIter) {
 		this.input_features = input_features;
 		this.output_size = output_size;
-		this.x = x;
+		this.x = new ArrayList<float[]>();
+		for(int i = 0; i < x.length; i++) {
+			this.x.add(x[i]);
+		}
 		this.xIter = xIter;
 		this.model = model;
 	}
@@ -88,35 +92,22 @@ public class LSTM_Bot {
 		this.model = MultiLayerNetwork.load(brainFile, true);
 		this.input_features = input_features;
 		this.output_size = output_size;
-		for(int i = 0; i < x.length; i++) {
-			x[i] = new float[input_features];
-		}
+		this.x = new ArrayList<float[]>();
 	}
 
 	public void reset() {
-		MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
-				.seed(123)
-	            .weightInit(WeightInit.XAVIER)
-	            .updater(new Adam())
-	            .list()
-				.layer(0, new LSTM.Builder()
-                        .activation(Activation.TANH)
-				        .nIn(input_features)
-				        .nOut(128)
-                        .build())
-				.layer(1, new RnnOutputLayer.Builder(LossFunction.MSE)
-                        .activation(Activation.RELU)
-						.nIn(128)
-						.nOut(output_size)
-                        .build())		
-				.build();
-		MultiLayerNetwork model = new MultiLayerNetwork(conf);
-		model.init();
-		this.model = model;
+		this.x = new ArrayList<float[]>();
+		this.xIter = 0;
 	}
 
 	public LSTM_Bot getCopy() throws CloneNotSupportedException {
-		return  new LSTM_Bot(this.model, this.input_features, this.output_size, x, xIter);
+		float[][] newX = new float[x.size()][input_features];
+		for(int i = 0; i < newX.length; i++) {
+			for(int j = 0; j < newX[i].length; j++) {
+				newX[i][j] = x.get(i)[j];
+			}
+		}
+		return  new LSTM_Bot(this.model, this.input_features, this.output_size, newX, this.xIter);
 	}
 
 	public void modelToFile(int i) throws IOException {
@@ -124,11 +115,11 @@ public class LSTM_Bot {
 	}
 
 	public float[] predict(float[] xi) {
-		x[xIter] = xi;
+		x.add(xi);
 		float[][][] m = new float[xIter+1][input_features][1];
 		for(int i = 0; i < m.length; i++) {
 			for (int j = 0; j < input_features; j++) {
-				m[i][j][0] = x[i][j];
+				m[i][j][0] = x.get(i)[j];
 			}
 		}
 		INDArray input = Nd4j.create(m);
@@ -149,12 +140,24 @@ public class LSTM_Bot {
 	public void train(int numFiles, int gen, int botInd) throws IOException, InterruptedException {
 		CSVSequenceRecordReader trainFeatures = new CSVSequenceRecordReader();
 		CSVSequenceRecordReader trainLabels = new CSVSequenceRecordReader();
-		trainFeatures.initialize( new NumberedFileInputSplit(botInd + "/" + gen + "/data_inputs_%d.csv", 0, (numFiles*4/5)-1));
-		trainLabels.initialize(new NumberedFileInputSplit(botInd+ "/" + gen + "/data_outputs_%d.csv", 0, (numFiles*4/5)-1));
-		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, 32, output_size, false, SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END);
-		this.validate((numFiles*4/5), numFiles, gen, botInd);
-		model.fit(ds, 10);
-		this.validate((numFiles*4/5), numFiles, gen, botInd);
+		trainFeatures.initialize( new NumberedFileInputSplit(botInd + "/" + gen + "/data_inputs_%d.csv", 0, numFiles-1));
+		trainLabels.initialize(new NumberedFileInputSplit(botInd+ "/" + gen + "/data_outputs_%d.csv", 0, numFiles-1));
+		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, 10, output_size, false, SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END);
+		this.validate(0, numFiles, gen, botInd);
+		model.fit(ds, 100);
+		this.validate(0, numFiles, gen, botInd);
+		System.out.println("trained");
+	}
+	
+	public void train(int numFiles, int startFile, int gen, int botInd) throws IOException, InterruptedException {
+		CSVSequenceRecordReader trainFeatures = new CSVSequenceRecordReader();
+		CSVSequenceRecordReader trainLabels = new CSVSequenceRecordReader();
+		trainFeatures.initialize( new NumberedFileInputSplit(botInd + "/" + gen + "/data_inputs_%d.csv", startFile, numFiles-1));
+		trainLabels.initialize(new NumberedFileInputSplit(botInd+ "/" + gen + "/data_outputs_%d.csv", startFile, numFiles-1));
+		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, 10, output_size, false, SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END);
+		this.validate(startFile, numFiles, gen, botInd);
+		model.fit(ds, 100);
+		this.validate(startFile, numFiles, gen, botInd);
 		System.out.println("trained");
 	}
 	
@@ -167,7 +170,7 @@ public class LSTM_Bot {
 //			System.out.println(trainFeatures.next());
 //			System.out.println(trainLabels.next());
 //		}
-		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, (endFiles-startFiles), output_size, false, SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END);
+		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, 10, output_size, false, SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END);
 		Evaluation eval = new Evaluation(output_size);
 		while (ds.hasNext()) {
 		    DataSet batch = ds.next();

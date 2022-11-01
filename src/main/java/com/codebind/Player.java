@@ -141,10 +141,10 @@ public class Player {
 		bets[0] = 0;
 		bets[1] = minbet;
 		for (int i = 2; i < 6; i++) {
-			bets[i] = (Math.max(this.getBankroll()-minbet,0)*Math.pow(i/5.0, 7))+minbet;
+			bets[i] = (Math.max(Math.min(this.getBankroll()-minbet, pot-minbet),0)*Math.pow(i/5.0, 2))+minbet;
 		}
 		for (int i = 0; i < bets.length; i++) {
-			bets[i] = filterBet(pot, minbet, Math.floor(bets[i]), 10);
+			bets[i] = filterBet(pot, minbet, Math.floor(bets[i]), 1);
 		}
 		return bets;
 	}
@@ -160,13 +160,24 @@ public class Player {
 				maxInd = i;
 			}
 		}
+//		System.out.println();
+//		System.out.println(maxInd);
+//		System.out.println();
 		double bet = 0;
 		if (maxInd == 1)
 			bet = minbet;
 		else if (maxInd >= 2) {
-			bet = (Math.max(this.getBankroll()-minbet,0)*Math.pow(maxInd/5.0, 7))+minbet;
+			bet = (Math.max(Math.min(this.getBankroll()-minbet, pot-minbet),0)*Math.pow(maxInd/5.0, 2))+minbet;
 		}
-		bet = filterBet(pot, minbet, Math.floor(bet), 10);
+
+//		System.out.println();
+//		System.out.println(bet + " " + minbet + " " + pot);
+//		System.out.println();
+		bet = filterBet(pot, minbet, Math.floor(bet), 1);
+
+//		System.out.println();
+//		System.out.println(bet);
+//		System.out.println();
 		this.round.add(round);
 		bets.add(bet);
 		minBets.add(minbet);
@@ -188,7 +199,7 @@ public class Player {
 				maxInd = i;
 			}
 		}
-		double bet = filterBet(pot, minbet, Math.floor(betIn), 10);
+		double bet = filterBet(pot, minbet, Math.floor(betIn), 1);
 		this.round.add(round);
 		minBets.add(minbet);
 		pots.add(pot);

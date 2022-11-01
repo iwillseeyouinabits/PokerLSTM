@@ -192,6 +192,7 @@ public class Game {
 				num++;
 			}
 			den++;
+			System.out.println(player1);
 			player1.reset(2000);
 			player2.reset(2000);
 			System.out.println("rate: " + num/den);

@@ -57,7 +57,27 @@ public class Runner {
 	public void runForGen(int numGen, int numData, int numThreads, int genStart, int botInd, boolean getData,
 			int numBots) throws CloneNotSupportedException, IOException, InterruptedException {
 		for (int i = genStart; i < numGen; i += numBots) {
-			for (botInd = 0; botInd < numBots; botInd++) {
+			int startBotInd = botInd;
+			for (; botInd < numBots; botInd++) {
+				LSTM_Bot[] brains = this.getBrains(numBots, i+botInd);
+				for (int ind = 0; ind < botInd; ind++) {
+					brains = this.rotate(brains);
+				}
+				if (getData) {
+					genData(brains, numData, numThreads, i, 0, botInd);
+				} else {
+					getData = true;
+				}
+				try {
+					brains[0].train(numData, i, botInd);
+					brains[0].modelToFile(i + botInd);
+				} catch (Exception e) {
+					e.printStackTrace();
+					getData = false;
+					botInd--;
+				}
+			}
+			for (botInd = 0; botInd < startBotInd; botInd++) {
 				LSTM_Bot[] brains = this.getBrains(numBots, i+botInd);
 				for (int ind = 0; ind < botInd; ind++) {
 					brains = this.rotate(brains);
