@@ -24,5 +24,10 @@
 			<artifactId>progressbar</artifactId>
 			<version>0.9.4</version>
 		</dependency>
+		<dependency>
+		    <groupId>org.deeplearning4j</groupId>
+		    <artifactId>deeplearning4j-parallel-wrapper</artifactId>
+		    <version>1.0.0-M2.1</version>
+		</dependency>
 	</dependencies>
 </project>
