@@ -11,11 +11,11 @@ import me.tongfei.progressbar.ProgressBar;
 public class Runner {
 
 	int numInputs = 7;
-	int numOutputs = 6;
+	int numOutputs = 11;
 
 	public void run(String[] args) throws CloneNotSupportedException, IOException, InterruptedException {
 		if (args.length == 0) {
-			runForGen(100, 2, 5, 0, 0, true, 3);
+			runForGen(100, 50, 1, 0, 1, true, 2);
 		} else {
 			runForGen(Integer.parseInt(args[0]), // numGen
 					Integer.parseInt(args[1]), // numData
@@ -33,6 +33,7 @@ public class Runner {
 		int brainsAdded = 0;
 		for (int i = genStart - 1; i >= 0 && brainsAdded < brains.length; i--) {
 			try {
+				System.out.println("brain" + i);
 				brains[brainsAdded] = new LSTM_Bot(new File("brain" + i), numInputs, numOutputs);
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -40,63 +41,41 @@ public class Runner {
 			brainsAdded++;
 		}
 		for (; brainsAdded < brains.length; brainsAdded++) {
+			System.out.println("New Brain");
 			brains[brainsAdded] = new LSTM_Bot(numInputs, numOutputs);
 		}
+		System.out.println("");
 		return brains;
 	}
 
-	public LSTM_Bot[] rotate(LSTM_Bot[] brains) {
-		LSTM_Bot b0 = brains[0];
-		for (int i = 1; i < brains.length; i++) {
-			brains[i - 1] = brains[i];
+	public LSTM_Bot[] flip(LSTM_Bot[] brains) {
+		LSTM_Bot[] tempBrains = new LSTM_Bot[brains.length];
+		for (int i = 0; i < brains.length; i++) {
+			tempBrains[i] = brains[brains.length-1-i];
 		}
-		brains[brains.length - 1] = b0;
-		return brains;
+		brains = tempBrains;
+		return tempBrains;
 	}
 
 	public void runForGen(int numGen, int numData, int numThreads, int genStart, int botInd, boolean getData,
 			int numBots) throws CloneNotSupportedException, IOException, InterruptedException {
-		for (int i = genStart; i < numGen; i += numBots) {
-			int startBotInd = botInd;
-			for (; botInd < numBots; botInd++) {
-				LSTM_Bot[] brains = this.getBrains(numBots, i+botInd);
-				for (int ind = 0; ind < botInd; ind++) {
-					brains = this.rotate(brains);
-				}
+		for (;botInd < numBots; botInd++) {
+				LSTM_Bot[] brains = this.getBrains(botInd+1, botInd);
+				brains = this.flip(brains);
 				if (getData) {
-					genData(brains, numData, numThreads, i, 0, botInd);
+					genData(brains, numData, numThreads, 0, 0, botInd);
 				} else {
 					getData = true;
 				}
 				try {
-					brains[0].train(numData, i, botInd);
-					brains[0].modelToFile(i + botInd);
+					brains[0].train(numData, 0, botInd);
+					brains[0].modelToFile(0 + botInd);
 				} catch (Exception e) {
 					e.printStackTrace();
 					getData = false;
 					botInd--;
 				}
 			}
-			for (botInd = 0; botInd < startBotInd; botInd++) {
-				LSTM_Bot[] brains = this.getBrains(numBots, i+botInd);
-				for (int ind = 0; ind < botInd; ind++) {
-					brains = this.rotate(brains);
-				}
-				if (getData) {
-					genData(brains, numData, numThreads, i, 0, botInd);
-				} else {
-					getData = true;
-				}
-				try {
-					brains[0].train(numData, i, botInd);
-					brains[0].modelToFile(i + botInd);
-				} catch (Exception e) {
-					e.printStackTrace();
-					getData = false;
-					botInd--;
-				}
-			}
-		}
 	}
 
 	public void genData(LSTM_Bot[] brains, int numData, int numTreadsRunConcurently, int gen, int gameStart, int botItr)

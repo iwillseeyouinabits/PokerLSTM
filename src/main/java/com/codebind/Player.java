@@ -92,7 +92,7 @@ public class Player {
 	}
 
 	public String toString() {
-		return name + ": " + bankroll;
+		return name + ": " + bankroll + " : " + this.lstm;
 	}
 
 	public ArrayList<Double> getBets() {
@@ -137,19 +137,38 @@ public class Player {
 	}
 
 	public double[] getBetOptions(double pot, double minbet) {
-		double[] bets = new double[6];
+		double[] bets = new double[11];
 		bets[0] = 0;
 		bets[1] = minbet;
-		for (int i = 2; i < 6; i++) {
-			bets[i] = (Math.max(Math.min(this.getBankroll()-minbet, pot-minbet),0)*Math.pow(i/5.0, 2))+minbet;
+		for (int i = 2; i < 11; i++) {
+			bets[i] = (Math.max((this.getBankroll()-minbet),0)*Math.pow(i/10.0, 4))+minbet;
 		}
 		for (int i = 0; i < bets.length; i++) {
 			bets[i] = filterBet(pot, minbet, Math.floor(bets[i]), 1);
 		}
 		return bets;
 	}
+	
+	public float[] commitForwardStep(double pot, double minbet, double round, int[][] hand, Player player2) {
+		this.round.add(round);
+		minBets.add(minbet);
+		pots.add(pot);
+		ranksTot.add(new Rank(hand).getRank());
+		ranksHand.add(new Rank(new int[][] { hand[hand.length - 1], hand[hand.length - 2] }).getRank());		
+		return getInputs(player2);
+		
+	}
+	
+	
 
 	public double makeBet(double pot, double minbet, double round, int[][] hand, Player player2) {
+		this.round.add(round);
+		minBets.add(minbet);
+		pots.add(pot);
+		ranksTot.add(new Rank(hand).getRank());
+		ranksHand.add(new Rank(new int[][] { hand[hand.length - 1], hand[hand.length - 2] }).getRank());
+		
+		
 		float[] inputs = getInputs(player2);
 		float[] outputs = lstm.predict(inputs);
 		int maxInd = -1;
@@ -160,52 +179,33 @@ public class Player {
 				maxInd = i;
 			}
 		}
-//		System.out.println();
-//		System.out.println(maxInd);
-//		System.out.println();
+
 		double bet = 0;
 		if (maxInd == 1)
 			bet = minbet;
 		else if (maxInd >= 2) {
-			bet = (Math.max(Math.min(this.getBankroll()-minbet, pot-minbet),0)*Math.pow(maxInd/5.0, 2))+minbet;
+			bet = (Math.max((this.getBankroll()-minbet),0)*Math.pow(maxInd/10.0, 4))+minbet;
 		}
-
-//		System.out.println();
-//		System.out.println(bet + " " + minbet + " " + pot);
-//		System.out.println();
 		bet = filterBet(pot, minbet, Math.floor(bet), 1);
-
-//		System.out.println();
-//		System.out.println(bet);
-//		System.out.println();
-		this.round.add(round);
+		
 		bets.add(bet);
-		minBets.add(minbet);
-		pots.add(pot);
-		ranksTot.add(new Rank(hand).getRank());
-		ranksHand.add(new Rank(new int[][] { hand[hand.length - 1], hand[hand.length - 2] }).getRank());
+		
 		bankroll -= bet;
 		return bet;
 	}
 
 	public double makeBet(double pot, double minbet, double round, int[][] hand, Player player2, double betIn) {
-		float[] inputs = getInputs(player2);
-		float[] outputs = lstm.predict(inputs);
-		int maxInd = -1;
-		double maxOut = -1;
-		for (int i = 0; i < outputs.length; i++) {
-			if (outputs[i] > maxOut) {
-				maxOut = outputs[i];
-				maxInd = i;
-			}
-		}
-		double bet = filterBet(pot, minbet, Math.floor(betIn), 1);
 		this.round.add(round);
 		minBets.add(minbet);
 		pots.add(pot);
-		bets.add(bet);
 		ranksTot.add(new Rank(hand).getRank());
 		ranksHand.add(new Rank(new int[][] { hand[hand.length - 1], hand[hand.length - 2] }).getRank());
+		
+		double bet = filterBet(pot, minbet, Math.floor(betIn), 1);
+		
+		bets.add(bet);
+		
+		
 		bankroll -= bet;
 		return bet;
 	}

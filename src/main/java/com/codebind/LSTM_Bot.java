@@ -49,6 +49,7 @@ public class LSTM_Bot {
 	int input_features, output_size;
 	ArrayList<float[]> x = new ArrayList<float[]>();
 	int xIter = 0;
+	String name = "";
 
 	public LSTM_Bot(int input_features, int output_size) {
 		int LSTM_LAYER_SIZE = 25;
@@ -59,7 +60,7 @@ public class LSTM_Bot {
 	            .updater(new Adam())
 	            .list()
 				.layer(0, new LSTM.Builder()
-                        .activation(Activation.RELU)
+                        .activation(Activation.TANH)
 				        .nIn(input_features)
 				        .nOut(LSTM_LAYER_SIZE)
                         .build())
@@ -77,7 +78,7 @@ public class LSTM_Bot {
 		this.x = new ArrayList<float[]>();
 	}
 
-	public LSTM_Bot(MultiLayerNetwork model, int input_features, int output_size,  float[][] x, int xIter) {
+	public LSTM_Bot(MultiLayerNetwork model, int input_features, int output_size,  float[][] x, int xIter, String name) {
 		this.input_features = input_features;
 		this.output_size = output_size;
 		this.x = new ArrayList<float[]>();
@@ -86,13 +87,21 @@ public class LSTM_Bot {
 		}
 		this.xIter = xIter;
 		this.model = model;
+		this.name = name;
 	}
 
 	public LSTM_Bot(File brainFile, int input_features, int output_size) throws IOException {
+		this.name = brainFile.toString();
 		this.model = MultiLayerNetwork.load(brainFile, true);
 		this.input_features = input_features;
 		this.output_size = output_size;
 		this.x = new ArrayList<float[]>();
+	}
+	
+
+
+	public String toString() {
+		return name;
 	}
 
 	public void reset() {
@@ -107,7 +116,7 @@ public class LSTM_Bot {
 				newX[i][j] = x.get(i)[j];
 			}
 		}
-		return  new LSTM_Bot(this.model, this.input_features, this.output_size, newX, this.xIter);
+		return  new LSTM_Bot(this.model, this.input_features, this.output_size, newX, this.xIter, this.name);
 	}
 
 	public void modelToFile(int i) throws IOException {
@@ -116,6 +125,13 @@ public class LSTM_Bot {
 
 	public float[] predict(float[] xi) {
 		x.add(xi);
+		
+//		System.out.println();
+//		for (float in : xi) {
+//			System.out.print(in + " ");
+//		}
+//		System.out.println();
+		
 		float[][][] m = new float[xIter+1][input_features][1];
 		for(int i = 0; i < m.length; i++) {
 			for (int j = 0; j < input_features; j++) {
@@ -124,8 +140,6 @@ public class LSTM_Bot {
 		}
 		INDArray input = Nd4j.create(m);
 		INDArray output = model.output(input);
-//		System.out.println(input);
-//		System.out.println(output);
 //		System.out.println();
 		float[] out = new float[this.output_size];
 		for (int i = 0; i < out.length; i++) {

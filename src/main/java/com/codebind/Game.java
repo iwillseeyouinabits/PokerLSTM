@@ -21,7 +21,7 @@ public class Game {
 			return new double[] {0, 0};
 		} else if (bet > betToCall && (p2.getBankroll() > bet-betToCall)) {
 			if (prnt)
-				System.out.println((player) + " - Raise " + (bet-betToCall));
+				System.out.println((player) + " - Raise " + (bet));
 			return new double[] {bet, 2};
 		} else if (bet == betToCall || (player.getBankroll() + bet == 0)) {
 			if (prnt)
@@ -40,6 +40,10 @@ public class Game {
 	
 	public double[] getBets2(int round, boolean prnt, ArrayList<int[]> hand1, ArrayList<int[]> hand2, Player pl1, Player pl2, double pot) {
 		double betToCall = 0;
+		if (round == 0) {
+			betToCall = 10;
+		}
+		double raiseItr = 0;
 		for (int i = 0; i < Integer.MAX_VALUE; i++) {
 			boolean flop = i%2 == 0;
 			ArrayList<int[]> hand;
@@ -54,7 +58,14 @@ public class Game {
 				hand = hand2;
 			}
 			
-			double[] play = getNextBet(round, player, p2, pot, betToCall, hand, prnt);
+			double[] play = new double[] {0, 0};
+			if (raiseItr <= 3) {
+				play = getNextBet(round, player, p2, pot, betToCall, hand, prnt);
+			} else {
+				p2.addToBankroll(pot);
+				if (prnt)
+					System.out.println(player +  " - Folds; loss of " + pot);
+			}
 			double bet = play[0];
 			int fcr = (int) play[1];
 			pot += bet;
@@ -64,6 +75,7 @@ public class Game {
 				betToCall = bet - betToCall;
 			else if (fcr == 0)
 				return new double[] {pot, 0};
+			raiseItr++;
 		}
 		return new double[0];
 	}
@@ -150,7 +162,7 @@ public class Game {
 			double bank2 = player2.getBankroll();
 			if (prnt) {
 				System.out.println();
-				System.out.println("Game__________________: " + (i));
+				System.out.println("Hand__________________: " + (i) + " -- " + player1 + " || " + player2);
 				System.out.println();
 			}
 			ArrayList[] hands = playGame(i%2==0, 10, prnt);

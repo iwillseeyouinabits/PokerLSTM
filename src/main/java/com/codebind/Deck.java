@@ -21,6 +21,10 @@ public class Deck {
 				deck.add(new int[] {suit, rank});
 		Collections.shuffle(deck);
 	}
+	
+	public void shufle() {
+		Collections.shuffle(deck);
+	}
 
 	public int[] drawCard() {
 		return deck.remove(0);
