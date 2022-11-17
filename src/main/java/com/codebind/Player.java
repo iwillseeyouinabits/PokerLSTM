@@ -137,11 +137,11 @@ public class Player {
 	}
 
 	public double[] getBetOptions(double pot, double minbet) {
-		double[] bets = new double[11];
+		double[] bets = new double[5];
 		bets[0] = 0;
 		bets[1] = minbet;
-		for (int i = 2; i < 11; i++) {
-			bets[i] = (Math.max((this.getBankroll()-minbet),0)*Math.pow(i/10.0, 4))+minbet;
+		for (int i = 2; i <= 4; i++) {
+			bets[i] = (Math.max(Math.min(getBankroll()-minbet, (pot*3)-minbet),0)*Math.pow(i/4.0, 3))+minbet;
 		}
 		for (int i = 0; i < bets.length; i++) {
 			bets[i] = filterBet(pot, minbet, Math.floor(bets[i]), 1);
@@ -173,7 +173,7 @@ public class Player {
 		float[] outputs = lstm.predict(inputs);
 		int maxInd = -1;
 		double maxOut = -1;
-		for (int i = 0; i < outputs.length; i++) {
+		for (int i = 0; i <= 4; i++) {
 			if (outputs[i] > maxOut) {
 				maxOut = outputs[i];
 				maxInd = i;
@@ -184,7 +184,7 @@ public class Player {
 		if (maxInd == 1)
 			bet = minbet;
 		else if (maxInd >= 2) {
-			bet = (Math.max((this.getBankroll()-minbet),0)*Math.pow(maxInd/10.0, 4))+minbet;
+			bet = (Math.max(Math.min(getBankroll()-minbet, (pot*3)-minbet),0)*Math.pow(maxInd/4.0, 3))+minbet;;
 		}
 		bet = filterBet(pot, minbet, Math.floor(bet), 1);
 		

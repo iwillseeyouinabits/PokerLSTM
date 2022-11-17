@@ -280,7 +280,7 @@ public class UnitPokerGame {
 		int[][] hand1 = (int[][]) deck.drawNCards(2).toArray(new int[2][]);
 		int[][] hand2 = (int[][]) deck.drawNCards(2).toArray(new int[2][]);
 		int[][] share = new int[0][];
-		double minbet = 0;
+		double minbet = 10;
 		boolean callable = false;
 		ArrayList<Object[]> argArray = new ArrayList<Object[]>();
 		argArray.add(new Object[] { p1, p2, share, hand1, hand2, deck, pot, minbet, minbet, callable, flip, round, 0, 0,
@@ -327,21 +327,17 @@ public class UnitPokerGame {
 				return p1.getBankroll() > p2.getBankroll();
 			}
 		}
-		return false;
+		return p1.getBankroll() > p2.getBankroll();
 	}
 
-	public double playNGames(int N, LSTM_Bot w1, LSTM_Bot w2) {
+	public double playNGames(int N, String w1, String w2, int numInput, int numOutput) throws IOException, Exception {
 		double num = 0, den = 0;
 		for (int i = 0; i < N; i++) {
-			try {
-				if (playGame(w1, w2)) {
+				if (playGame(new LSTM_Bot(new File(w1), numInput, numOutput), new LSTM_Bot(new File(w2), numInput, numOutput))) {
 					num++;
 				}
 				den++;
 				System.out.println(num / den);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
 		}
 		return num / den;
 	}

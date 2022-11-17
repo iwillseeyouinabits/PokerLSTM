@@ -13,6 +13,17 @@ import java.util.concurrent.TimeUnit;
 
 public class UnitPokerRecur {
 
+	boolean prnt = false;
+	boolean printWin = false;
+
+	UnitPokerRecur() {
+
+	}
+
+	UnitPokerRecur(boolean prnt) {
+		this.prnt = prnt;
+	}
+
 	public double[] getNextBet(int round, Player player, Player p2, double pot, double betToCall, int[][] hand,
 			boolean updatePlayer, int raiseItr, double bet) {
 		if (updatePlayer)
@@ -50,6 +61,7 @@ public class UnitPokerRecur {
 			} else {
 				player.addToBankroll(bet);
 				p2.addToBankroll(pot);
+//				System.out.println(player + " Fold to " + betToCall);
 				return new double[] { 0 };
 			}
 		} else if (bet > betToCall && !(p2.getBankroll() <= bet - betToCall)) {
@@ -69,18 +81,6 @@ public class UnitPokerRecur {
 			throws Exception {
 		int[][] totHand1 = new int[hand1.length + share.length][];
 		int[][] totHand2 = new int[hand1.length + share.length][];
-//		for(int i = 0; i < hand1.length; i++) {
-//			System.out.print(hand1[i][0] + " | ");
-//		}
-//		System.out.println();
-//		for(int i = 0; i < hand2.length; i++) {
-//			System.out.print(hand2[i][0] + " - ");
-//		}
-//		System.out.println();
-//		for(int i = 0; i < share.length; i++) {
-//			System.out.print(share[i][0] + " = ");
-//		}
-//		System.out.println();
 		for (int i = 0; i < share.length; i++) {
 			totHand1[i] = share[i];
 			totHand2[i] = share[i];
@@ -96,14 +96,26 @@ public class UnitPokerRecur {
 		double rankP1 = new Rank(totHand1).getRank();
 		double rankP2 = new Rank(totHand2).getRank();
 		if (rankP1 == rankP2) {
-//			System.out.println("tie");
+			if (printWin) {
+				System.out.println();
+				System.out.println("tie");
+				printWin = false;
+			}
 			p1.addToBankroll(Math.floor(pot / 2));
 			p2.addToBankroll(Math.floor(pot / 2));
 		} else if (rankP1 > rankP2) {
-//			System.out.println("p1");
+			if (printWin) {
+				System.out.println();
+				System.out.println("p1");
+				printWin = false;
+			}
 			p1.addToBankroll(pot);
 		} else {
-//			System.out.println("p2");
+			if (printWin) {
+				System.out.println();
+				System.out.println("p2");
+				printWin = false;
+			}
 			p2.addToBankroll(pot);
 		}
 	}
@@ -129,9 +141,17 @@ public class UnitPokerRecur {
 		return newHand;
 	}
 
-	public Object[] nextUnit(Player p1, Player p2, int[][] share, int[][] hand1, int[][] hand2, Deck deck, double pot,
-			double minbet, boolean callable, boolean flip, int round, int raisItr, int dataFile,
-			ArrayList<float[][]> histData) throws Exception {
+	public Deck[] copyDeck(Deck[] deck) {
+		Deck[] newDeck = new Deck[deck.length];
+		for (int i = 0; i < deck.length; i++) {
+			newDeck[i] = deck[i].getCopy();
+		}
+		return newDeck;
+	}
+
+	public Object[] nextUnit(Player p1, Player p2, int[][] share, int[][] hand1, int[][] hand2, Deck[] decks, double pot,
+			double minbet1, double minbet2, boolean callable, boolean flip, int round, int raisItr, int dataFile,
+			ArrayList<float[][]> histData, int orgBank, int totBet) throws Exception {
 		int[][] totHand1 = new int[hand1.length + share.length][];
 		int[][] totHand2 = new int[hand1.length + share.length][];
 
@@ -144,59 +164,64 @@ public class UnitPokerRecur {
 			totHand2[share.length + i] = hand2[i];
 		}
 		double[] plays;
-		int maxPlaysPerHand = 3;
-		if (flip && raisItr <= maxPlaysPerHand)
-			plays = p1.getBetOptions(pot, minbet);
-		else if (flip)
-			plays = new double[] { 0 };
-		else if (raisItr <= maxPlaysPerHand)
-			plays = getNextBet(round, p2, p1, pot, minbet, totHand2, false, raisItr);
-		else
-			plays = new double[] { 0 };
+		int maxPlaysPerHand = 1;
 
-		ArrayList<Object[]> out = new ArrayList<Object[]>();
+		if (flip && raisItr <= maxPlaysPerHand) {
+			plays = p1.getBetOptions(pot, minbet1);
+		} else if (flip)
+			plays = new double[] { p1.getBetOptions(pot, minbet1)[0], p1.getBetOptions(pot, minbet1)[1] };
+		else
+			plays = getNextBet(round, p2, p1, pot, minbet2, totHand2, false, raisItr);
+		ArrayList<Object[]> outs = new ArrayList<Object[]>();
 		Player oldp1 = p1.getCopy();
 		Player oldp2 = p2.getCopy();
+		boolean histCallable = callable;
 		double oldpot = pot;
 		int oldround = round;
-		double oldminbet = minbet;
+		double oldminbet1 = minbet1;
+		double oldminbet2 = minbet2;
 		int oldraisitr = raisItr;
+		int histTotBet = totBet;
 		ArrayList<float[][]> oldhistData = (ArrayList<float[][]>) histData.clone();
 		for (int i = 0; i < plays.length; i++) {
 			double play = plays[i];
 			p1 = oldp1.getCopy();
 			p2 = oldp2.getCopy();
+			callable = histCallable;
 			pot = oldpot;
-			minbet = oldminbet;
+			minbet1 = oldminbet1;
+			minbet2 = oldminbet2;
 			round = oldround;
 			raisItr = oldraisitr;
+			totBet = histTotBet;
 			histData = (ArrayList<float[][]>) oldhistData.clone();
-			
+			boolean dealCards = false;
+			double[] playOut;
 
 			if (plays.length > 1) {
-				float[] input = new Data().getData(p1, p2);
+				Player p1copy = p1.getCopy();
+				Player p2copy = p2.getCopy();
+				float[] input = p1copy.commitForwardStep(pot, minbet1, round, totHand1, p2copy);
 				float[] output = new float[100];
 				output[i] = 1;
 				histData.add(new float[][] { input, output });
 			}
 
-			boolean dealCards = false;
-			double[] playOut;
 			if (plays.length == 1 && flip) {
-				playOut = getNextBet(round, p1, p2, pot, minbet, totHand1, false, raisItr, play);
+				playOut = getNextBet(round, p1, p2, pot, minbet1, totHand1, false, raisItr, play);
 			} else if (plays.length == 1) {
-				playOut = getNextBet(round, p2, p1, pot, minbet, totHand2, false, raisItr, play);
+				playOut = getNextBet(round, p2, p1, pot, minbet2, totHand2, false, raisItr, play);
 			} else {
-				playOut = getNextBet(round, p1, p2, pot, minbet, totHand1, true, raisItr, play);
+				playOut = getNextBet(round, p1, p2, pot, minbet1, totHand1, true, raisItr, play);
 			}
 			double bet = playOut[0];
 			int fcr = (int) playOut[1];
 			pot += bet;
-//			System.out.println(flip + " " + bet +  " " + i + " " + raisItr);
+			if (flip)
+				totBet += bet;
 			boolean cont = true;
 			int tempRound = round;
 
-			
 			if (fcr == 0) {
 				callable = false;
 				cont = false;
@@ -206,32 +231,38 @@ public class UnitPokerRecur {
 				callable = false;
 				dealCards = true;
 				round += 1;
-				minbet = 0;
+//				System.out.println("round" + round);
+				minbet1 = 0;
+				minbet2 = 0;
 			} else if (fcr == 1 && callable && round == 3) {
 				cont = false;
 				callable = false;
 				findWinner(p1, p2, hand1, hand2, share, pot);
 			} else if (fcr == 2) {
 				callable = true;
-				minbet = bet - minbet;
+				if (flip)
+					minbet2 = bet - minbet1;
+				else
+					minbet1 = bet - minbet2;
 			} else {
 				System.out.println("Wrong Move Made");
 			}
 
 			if (round == tempRound)
 				raisItr += 1;
+			else
+				raisItr = 0;
 
 			if (cont) {
-				if (!dealCards) {
-					out.add(this.nextUnit(p1.getCopy(), p2.getCopy(), this.copyHand(share), this.copyHand(hand1),
-							this.copyHand(hand2), deck.getCopy(), pot, minbet, callable, !flip, round, raisItr,
-							dataFile, (ArrayList<float[][]>) histData.clone()));
-				} else {
-					ArrayList<Object[]> tempOut = new ArrayList<Object[]>();
-					int numDeal = 3;
-					for (int dealItr = 0; dealItr < numDeal; dealItr++) {
-						Deck tempDeck = ((Deck) deck).getCopy();
-						tempDeck.shufle();
+				if (!dealCards)
+					outs.add(this.nextUnit(p1.getCopy(), p2.getCopy(), this.copyHand(share), this.copyHand(hand1),
+							this.copyHand(hand2), this.copyDeck(decks), pot, minbet1, minbet2, callable, !flip, round,
+							raisItr, dataFile, (ArrayList) histData.clone(), orgBank, totBet));
+				else {
+					int numDeal = decks.length;
+					Object[][] tempOuts = new Object[numDeal][];
+					for (int itr = 0; itr < numDeal; itr++) {
+						Deck tempDeck = decks[itr];
 						int[][] newCards = dealCards(tempDeck, round - 1);
 						int[][] newShare = new int[newCards.length + share.length][];
 						for (int k = 0; k < share.length; k++) {
@@ -240,38 +271,37 @@ public class UnitPokerRecur {
 						for (int k = 0; k < newCards.length; k++) {
 							newShare[k + share.length] = newCards[k];
 						}
-						tempOut.add(this.nextUnit(p1.getCopy(), p2.getCopy(), this.copyHand(newShare), this.copyHand(hand1),
-								this.copyHand(hand2), tempDeck, pot, minbet, callable, !flip, round, raisItr, dataFile,
-								(ArrayList<float[][]>) histData.clone()));
+						tempOuts[itr] = (this.nextUnit(p1.getCopy(), p2.getCopy(), this.copyHand(newShare),
+								this.copyHand(hand1), this.copyHand(hand2), this.copyDeck(decks), pot, minbet1, minbet2, callable,
+								!flip, round, raisItr, dataFile, (ArrayList) histData.clone(), orgBank, totBet));
 					}
-					for (int m = 0; m < tempOut.size(); m++) {
-						for(int n = 1; n < tempOut.size(); n++) {
-							if((Double) tempOut.get(n-1)[0] > (Double) tempOut.get(n)[0]) {
-								Object[] to = tempOut.get(n);
-								tempOut.set(n, tempOut.get(n-1));
-								tempOut.set(n-1, to);
-							}
-						}
+					double avObjective = 0;
+					for (Object[] o : tempOuts) {
+						avObjective += ((Double) o[0]) / numDeal;
 					}
-					out.add(tempOut.get(tempOut.size()/2));
+					int randDealInd = (int) (tempOuts.length*Math.random());
+					tempOuts[randDealInd][0] = avObjective;
+					outs.add(tempOuts[randDealInd]);
 				}
 			} else {
-				out.add(new Object[] { p1.getBankroll(), p1.getCopy(), p2.getCopy(), histData.clone() });
+				Object[] returnOut = new Object[] { (p1.getBankroll() - orgBank) / totBet, p1.getCopy(), p2.getCopy(),
+						histData.clone() };
+				outs.add(returnOut);
 			}
 		}
-		double maxBank = 0;
-		int maxInd = 0;
-		for (int i = 0; i < out.size(); i++) {
-			if(out.size() > 1)
-				System.out.print((Double) out.get(i)[0] + " ");
-			if ((Double) out.get(i)[0] > maxBank) {
-				maxBank = (Double) out.get(maxInd)[0];
-				maxInd = i;
+		if (outs.size() == 1) {
+			return outs.get(0);
+		} else {
+			Double maxObjective = -10000.0;
+			Object[] maxOut = null;
+			for (Object[] out : outs) {
+				if ((Double) out[0] > maxObjective) {
+					maxObjective = (Double) out[0];
+					maxOut = out;
+				}
 			}
+			return maxOut;
 		}
-		if(out.size() > 1)
-			System.out.println();
-		return out.get(maxInd);
 	}
 
 	public Object[] playHand(Player p1, Player p2, boolean flip, int dataFile) throws Exception {
@@ -287,23 +317,54 @@ public class UnitPokerRecur {
 		}
 		int[][] hand1 = (int[][]) deck.drawNCards(2).toArray(new int[2][]);
 		int[][] hand2 = (int[][]) deck.drawNCards(2).toArray(new int[2][]);
+		Deck[] decks = new Deck[2];
+		for (int i = 0; i < decks.length; i++) {
+			Deck tempDeck = deck.getCopy();
+			tempDeck.shufle();
+			decks[i] = tempDeck;
+		}
 		int[][] share = new int[0][];
 		double minbet = 10;
 		boolean callable = false;
-		Object[] out = nextUnit(p1, p2, share, hand1, hand2, deck, pot, minbet, callable, flip, round, 0, dataFile,
-				new ArrayList<float[][]>());
-		return out;
+		ArrayList<Object[]> argArray = new ArrayList<Object[]>();
+		argArray.add(new Object[] { p1, p2, share, hand1, hand2, decks, pot, minbet, minbet, callable, flip, round, 0,
+				dataFile, new ArrayList<double[][]>(), (int) p1.getBankroll(), 1 });
+		ArrayList<Object[]> output = new ArrayList<Object[]>();
+		while (argArray.size() > 0) {
+			Object[] args = argArray.remove(0);
+			if (args.length == 17) {
+				Object[] nextUnit = nextUnit((Player) args[0], (Player) args[1], (int[][]) args[2], (int[][]) args[3],
+						(int[][]) args[4], (Deck[]) args[5], (Double) args[6], (Double) args[7], (Double) args[8],
+						(Boolean) args[9], (Boolean) args[10], (Integer) args[11], (Integer) args[12],
+						(Integer) args[13], (ArrayList<float[][]>) args[14], (Integer) args[15], (Integer) args[16]);
+				argArray.add(0, nextUnit);
+			} else {
+				output.add(args);
+			}
+		}
+		double maxBank = -1000000;
+		Object[] bestOut = new Object[3];
+		for (int i = 0; i < output.size(); i++) {
+			Object[] out = output.get(i);
+			if ((Double) out[0] > maxBank) {
+				maxBank = (Double) out[0];
+				bestOut = out;
+			}
+		}
+		return bestOut;
 	}
 
 	public ArrayList<float[][]> playGame(LSTM_Bot w1, LSTM_Bot w2, int botItr, int dataFile, int gen) throws Exception {
 		Player p1 = new Player(2000, "p1", w1);
 		Player p2 = new Player(2000, "p2", w2);
 		ArrayList<float[][]> data = new ArrayList<float[][]>();
+//		System.out.println();
 		for (int i = 0; i < Integer.MAX_VALUE; i++) {
 			Object[] out = playHand(p1, p2, i % 2 == 0, dataFile);
 			p1 = (Player) out[1];
 			p2 = (Player) out[2];
-			System.out.println(p1 + " " + p2);
+//			System.out.println();
+//			System.out.println(out[0] + " " + p1 + " " + p2);
 			for (float[][] datum : (ArrayList<float[][]>) out[3]) {
 				data.add(datum);
 			}

@@ -25,7 +25,7 @@ public class GetDataThreaded implements Runnable {
 	public void run() {
 			try {
 //				System.out.println("start");
-				new UnitPoker().playGame(brain1, brain2, botItr, file, gen);
+				new UnitPokerRecur().playGame(brain1, brain2, botItr, file, gen);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

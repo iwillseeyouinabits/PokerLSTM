@@ -27,7 +27,8 @@ public class Deck {
 	}
 
 	public int[] drawCard() {
-		return deck.remove(0);
+		int[] card = deck.remove(0);
+		return card;
 	}
 	
 	public ArrayList<int[]> drawNCards(int N) {
