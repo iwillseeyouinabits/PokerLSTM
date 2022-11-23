@@ -284,7 +284,7 @@ public class UnitPokerRecur {
 					outs.add(tempOuts[randDealInd]);
 				}
 			} else {
-				Object[] returnOut = new Object[] { (p1.getBankroll() - orgBank) / totBet, p1.getCopy(), p2.getCopy(),
+				Object[] returnOut = new Object[] { (p1.getBankroll() - orgBank) / 1, p1.getCopy(), p2.getCopy(),
 						histData.clone() };
 				outs.add(returnOut);
 			}

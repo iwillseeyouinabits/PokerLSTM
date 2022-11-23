@@ -47,4 +47,34 @@ public class Deck {
 		return new Deck((ArrayList<int[]>) this.deck.clone());
 	}
 
+	public float playNHands(int N, int[][] hand) {
+		double num = 0, den = 0;
+		ArrayList<int[]> share = new ArrayList<int[]>();
+		for (int[] card : hand) {
+			this.removeCard(card);
+			share.add(card);
+		}
+		int[][] pocket1 = new int[2][];
+		int[][] pocket2 = new int[2][];
+		pocket1[0] = share.remove(share.size()-1);
+		pocket1[1] = share.remove(share.size()-1);
+		ArrayList<int[]> oldShare = (ArrayList<int[]>) share.clone();
+		for(int i = 0; i < N; i++) {
+			share = (ArrayList<int[]>) oldShare.clone();
+			Deck d = new Deck((ArrayList<int[]>) deck.clone());
+			d.shufle();
+			pocket2[0] = d.drawCard();
+			pocket2[1] = d.drawCard();
+			for (; share.size() < 5;) {
+				share.add(d.drawCard());
+			}
+			double rank1 = new Rank(new int[][] {pocket1[0], pocket1[1], share.get(0), share.get(1), share.get(2), share.get(3), share.get(4)}).getRank();
+			double rank2 = new Rank(new int[][] {pocket2[0], pocket2[1], share.get(0), share.get(1), share.get(2), share.get(3), share.get(4)}).getRank();
+			if (rank1 > rank2)
+				num++;
+			den++;
+		}
+		return (float) (num/den);
+	}
+	
 }
