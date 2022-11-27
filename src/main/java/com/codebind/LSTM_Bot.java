@@ -137,12 +137,11 @@ public class LSTM_Bot {
 //		System.out.println();
 //		System.out.println(output);
 //		System.out.println("*********************");
-		
-		
+
 //		System.out.println(output + " " + (output.size(0)) + " " + (output.size(1)) + " " + (output.size(2)));
 		float[] out = new float[this.output_size];
 		for (int i = 0; i < out.length; i++) {
-			out[i] = output.getFloat((int)((int)((i+1)*((output.size(2)))-1)));
+			out[i] = output.getFloat((int) ((int) ((i + 1) * ((output.size(2))) - 1)));
 //			System.out.print(out[i] + " " + (int)((i+1)*((output.size(2)))-1) + " ");
 		}
 //		System.out.println();
@@ -157,11 +156,37 @@ public class LSTM_Bot {
 				.initialize(new NumberedFileInputSplit(botInd + "/" + gen + "/data_inputs_%d.csv", 0, numFiles - 1));
 		trainLabels
 				.initialize(new NumberedFileInputSplit(botInd + "/" + gen + "/data_outputs_%d.csv", 0, numFiles - 1));
-		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, 10, output_size, false,
+		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, 2, output_size, false,
 				SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END);
 		this.validate(0, numFiles, gen, botInd);
 		model.fit(ds, 100);
 		this.validate(0, numFiles, gen, botInd);
+		System.out.println("trained");
+	}
+
+	public void train(int[][] fileData) throws IOException, InterruptedException {
+		CSVSequenceRecordReader tf = new CSVSequenceRecordReader();
+		CSVSequenceRecordReader tl = new CSVSequenceRecordReader();
+		for (int i = 0; i < fileData.length; i++) {
+			CSVSequenceRecordReader trainFeatures = new CSVSequenceRecordReader();
+			CSVSequenceRecordReader trainLabels = new CSVSequenceRecordReader();
+			trainFeatures.initialize(new NumberedFileInputSplit(fileData[i][0] + "/" + 0 + "/data_inputs_%d.csv", 0,
+					fileData[i][1] - 1));
+			trainLabels.initialize(new NumberedFileInputSplit(fileData[i][0] + "/" + 0 + "/data_outputs_%d.csv", 0,
+					fileData[i][1] - 1));
+			if (i == 0) {
+				tf = trainFeatures;
+				tl = trainLabels;
+			} else {
+				while (trainFeatures.hasNext()) {
+					tf.loadFromMetaData(trainFeatures.nextRecord().getMetaData());
+					tl.loadFromMetaData(trainLabels.nextRecord().getMetaData());
+				}
+			}
+		}
+		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(tf, tl, 2, output_size, false,
+				SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END);
+		model.fit(ds, 100);
 		System.out.println("trained");
 	}
 
@@ -172,7 +197,7 @@ public class LSTM_Bot {
 				new NumberedFileInputSplit(botInd + "/" + gen + "/data_inputs_%d.csv", startFile, numFiles - 1));
 		trainLabels.initialize(
 				new NumberedFileInputSplit(botInd + "/" + gen + "/data_outputs_%d.csv", startFile, numFiles - 1));
-		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, 10, output_size, false,
+		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, 2, output_size, false,
 				SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END);
 		this.validate(startFile, numFiles, gen, botInd);
 		model.fit(ds, 100);
@@ -221,11 +246,11 @@ public class LSTM_Bot {
 			INDArray inputs = batch.getFeatures();
 			INDArray outputs = model.output(inputs);
 			INDArray trueOutputs = batch.getLabels();
-		    System.out.println("===========================");
-		    System.out.println(this.name);
-		    System.out.println(inputs);
-		    System.out.println();
-		    System.out.println(outputs);
+			System.out.println("===========================");
+			System.out.println(this.name);
+			System.out.println(inputs);
+			System.out.println();
+			System.out.println(outputs);
 //		    System.out.println("[[[[[[[[[[[[[[[[[[[[[[[[[[[");
 //		    System.out.println(trueOutputs);
 			System.out.println("__________________________");
@@ -234,18 +259,18 @@ public class LSTM_Bot {
 			ArrayList<float[]> trueOuts = new ArrayList<float[]>();
 			for (int k = 0; k < outputs.size(0); k++) {
 				for (int i = 0; i < outputs.get(NDArrayIndex.point(k)).size(1); i++) {
-				float[] o = new float[this.output_size];
-				float[] to = new float[this.output_size];
-				for (int j = 0; j < this.output_size; j++) {
-					o[j] = outputs.get(NDArrayIndex.point(k)).getColumn(i).getFloat(j);
-					to[j] = trueOutputs.get(NDArrayIndex.point(k)).getColumn(i).getFloat(j);
+					float[] o = new float[this.output_size];
+					float[] to = new float[this.output_size];
+					for (int j = 0; j < this.output_size; j++) {
+						o[j] = outputs.get(NDArrayIndex.point(k)).getColumn(i).getFloat(j);
+						to[j] = trueOutputs.get(NDArrayIndex.point(k)).getColumn(i).getFloat(j);
 //					System.out.println();
 //					System.out.println(trueOutputs.get(NDArrayIndex.point(k)));
 //					System.out.println("((((((((((((((((((((((((((((((((((((( " + k + " " + i);
 //					System.out.println(trueOutputs.get(NDArrayIndex.point(k)).getColumn(i));
-				}
-				outs.add(o);
-				trueOuts.add(to);
+					}
+					outs.add(o);
+					trueOuts.add(to);
 				}
 			}
 			for (int i = 0; i < outs.size(); i++) {

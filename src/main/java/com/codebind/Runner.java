@@ -15,7 +15,7 @@ public class Runner {
 
 	public void run(String[] args) throws CloneNotSupportedException, IOException, InterruptedException {
 		if (args.length == 0) {
-			runForGen(100, 5000, 20, 2000, 0, true, 1);
+			runForGen(100, 5100, 20, 5000, 4, true, 5);
 		} else {
 			runForGen(Integer.parseInt(args[0]), // numGen
 					Integer.parseInt(args[1]), // numData

@@ -44,9 +44,9 @@ public class Game {
 	public double[] getBets2(int round, boolean prnt, ArrayList<int[]> hand1, ArrayList<int[]> hand2, Player pl1,
 			Player pl2, double pot) {
 		double betToCall = 0;
-//		if (round == 0) {
-//			betToCall = 10;
-//		}
+		if (round == 0) {
+			betToCall = 10;
+		}
 		double raiseItr = 0;
 		for (int i = 0; i < Integer.MAX_VALUE; i++) {
 			boolean flop = i % 2 == 0;
@@ -137,6 +137,7 @@ public class Game {
 			if (prnt) {
 				System.out.println("Player " + (player1) + " Wins " + (pot));
 //				time.sleep(2);
+				new GUI().printHand(hand2.toArray(new int[hand1.size()][]));
 				new GUI().printHand(hand1.toArray(new int[hand1.size()][]));
 				new GUI().printWinningHand((int) rankP1);
 //				time.sleep(7)
@@ -146,6 +147,7 @@ public class Game {
 			if (prnt) {
 				System.out.println("Player " + (player2) + " Wins " + (pot));
 //				time.sleep(2)
+				new GUI().printHand(hand1.toArray(new int[hand2.size()][]));
 				new GUI().printHand(hand2.toArray(new int[hand2.size()][]));
 				new GUI().printWinningHand((int) rankP2);
 //				time.sleep(7)
@@ -203,8 +205,24 @@ public class Game {
 		double num = 0;
 		double den = 0;
 		for (int i = 0; i < numGames; i++) {
-			player1 = new Player(2000, "p1", new LSTM_Bot(new File(brain1), 7, 6));
-			player2 = new Player(2000, "p2", new LSTM_Bot(new File(brain2), 7, 6));
+			player1 = new Player(2000, "p1", new LSTM_Bot(new File(brain1), 8, 5));
+			player2 = new Player(2000, "p2", new LSTM_Bot(new File(brain2), 8, 5));
+			if (this.playNGames(N, prnt)) {
+				num++;
+			}
+			den++;
+			System.out.println(player1);
+			System.out.println("rate: " + num / den);
+		}
+		return num / den;
+	}
+
+	public double getWinRateHuman(String brain, int numGames, int N, boolean prnt) throws IOException {
+		double num = 0;
+		double den = 0;
+		for (int i = 0; i < numGames; i++) {
+			player1 = new Player(2000, "Robot", new LSTM_Bot(new File(brain), 8, 5));
+			player2 = new PlayerReal(2000, "Human");
 			if (this.playNGames(N, prnt)) {
 				num++;
 			}
