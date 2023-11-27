@@ -153,14 +153,14 @@ public class LSTM_Bot {
 		CSVSequenceRecordReader trainFeatures = new CSVSequenceRecordReader();
 		CSVSequenceRecordReader trainLabels = new CSVSequenceRecordReader();
 		trainFeatures
-				.initialize(new NumberedFileInputSplit(botInd + "/" + gen + "/data_inputs_%d.csv", 0, numFiles - 1));
+				.initialize(new NumberedFileInputSplit(botInd + "/" + gen + "/data_inputs_%d.csv", 0, (int) (numFiles*0.8) - 1));
 		trainLabels
-				.initialize(new NumberedFileInputSplit(botInd + "/" + gen + "/data_outputs_%d.csv", 0, numFiles - 1));
+				.initialize(new NumberedFileInputSplit(botInd + "/" + gen + "/data_outputs_%d.csv", 0, (int) (numFiles*0.8) - 1));
 		DataSetIterator ds = new SequenceRecordReaderDataSetIterator(trainFeatures, trainLabels, 2, output_size, false,
 				SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END);
-		this.validate(0, numFiles, gen, botInd);
+		this.validate((int) (numFiles*0.8) - 1, numFiles, gen, botInd);
 		model.fit(ds, 100);
-		this.validate(0, numFiles, gen, botInd);
+		this.validate((int) (numFiles*0.8) - 1, numFiles, gen, botInd);
 		System.out.println("trained");
 	}
 

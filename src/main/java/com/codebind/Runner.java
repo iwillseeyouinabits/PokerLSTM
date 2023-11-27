@@ -15,15 +15,15 @@ public class Runner {
 
 	public void run(String[] args) throws CloneNotSupportedException, IOException, InterruptedException {
 		if (args.length == 0) {
-			runForGen(100, 5100, 20, 5000, 4, true, 5);
+			runForGen(5100, 20, 5000, 4, true, 5);
 		} else {
-			runForGen(Integer.parseInt(args[0]), // numGen
-					Integer.parseInt(args[1]), // numData
-					Integer.parseInt(args[2]), // numThreads
-					Integer.parseInt(args[3]), // gameStart
-					Integer.parseInt(args[4]), // botInd
-					Boolean.parseBoolean(args[5]), // getData
-					Integer.parseInt(args[6]) // botNum
+			runForGen(
+					Integer.parseInt(args[0]), // numData
+					Integer.parseInt(args[1]), // numThreads
+					Integer.parseInt(args[2]), // gameStart
+					Integer.parseInt(args[3]), // botInd
+					Boolean.parseBoolean(args[4]), // getData
+					Integer.parseInt(args[5]) // botNum
 			);
 		}
 	}
@@ -53,7 +53,7 @@ public class Runner {
 		return tempBrains;
 	}
 
-	public void runForGen(int numGen, int numData, int numThreads, int gameStart, int botInd, boolean getData,
+	public void runForGen(int numData, int numThreads, int gameStart, int botInd, boolean getData,
 			int numBots) throws CloneNotSupportedException, IOException, InterruptedException {
 		for (; botInd < numBots; botInd++) {
 			LSTM_Bot[] brains = this.getBrains(botInd + 1, botInd);

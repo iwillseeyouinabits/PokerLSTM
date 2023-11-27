@@ -187,10 +187,8 @@ public class PlayerReal extends Player {
 		hands.add(hand);
 		try {
 			int[][] handPrint = new int[hand.length][];
-			handPrint[0] = hand[hand.length-1];
-			handPrint[1] = hand[hand.length-2];
-			for(int i = 0; i < hand.length - 2; i++) {
-				handPrint[i+2] = hand[i];
+			for(int i = 0; i < hand.length; i++) {
+				handPrint[i] = hand[i];
 			}
 			new GUI().printHand(handPrint);
 		} catch (FileNotFoundException e) {}

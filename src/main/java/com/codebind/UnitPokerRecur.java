@@ -317,7 +317,7 @@ public class UnitPokerRecur {
 		}
 		int[][] hand1 = (int[][]) deck.drawNCards(2).toArray(new int[2][]);
 		int[][] hand2 = (int[][]) deck.drawNCards(2).toArray(new int[2][]);
-		Deck[] decks = new Deck[2];
+		Deck[] decks = new Deck[1];
 		for (int i = 0; i < decks.length; i++) {
 			Deck tempDeck = deck.getCopy();
 			tempDeck.shufle();
